@@ -10,15 +10,22 @@ namespace CatBot;
 
 public class ColorBot : CommandModule<PrefixedCommandContext>
 {
+    private const string Help =
+        "\nNeed help? Examples: '#ff00ff', `123456`, `0xf0f0f0`, etc. [Color Picker](https://www.google.com/search?q=color+picker)";
+    
     [Command("color", "colour")]
     [RequireContext<PrefixedCommandContext>(RequiredContext.Guild)]
     [RequireBotPermissions<PrefixedCommandContext>(Permissions.ManageRoles)]
-    public async Task<string> Color(string hexColor)
+    public async Task Color(string hexColor)
     {
         // make sure color is valid
         var hex = ValidateHexColor(hexColor);
         if (hex == null)
-            return $"Invalid hex color `{hexColor}`";
+        {
+            await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
+                .WithDescription($"Invalid hex {Context.InvokedAlias.ToLower()}: `{hexColor}`" + Help)));
+            return;
+        }
 
         //get the user who sent the message
         var guildUser = await Context.Guild!.GetUserAsync(Context.User.Id);
@@ -48,7 +55,6 @@ public class ColorBot : CommandModule<PrefixedCommandContext>
         if (removedRoles.Any())
         {
             var roleCounts = await GetRoleMemberCountsAsync(Context.Guild.Id, Context.Client.Rest.Token!.RawToken);
-
             foreach (var emptyRole in removedRoles.Where(r => roleCounts.ContainsKey(r.Id) && roleCounts[r.Id] == 0))
             {
                 await Context.Guild!.DeleteRoleAsync(emptyRole.Id);
@@ -60,10 +66,16 @@ public class ColorBot : CommandModule<PrefixedCommandContext>
             // add the user to the role
             var newRole = await GetOrCreateRole(roleColor);
             await guildUser.AddRoleAsync(newRole.Id);
-            return $"<@{Context.User.Id}> your {Context.InvokedAlias.ToLower()} has been updated to <@&{newRole.Id}>";
+            await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
+                .WithDescription($"Your {Context.InvokedAlias.ToLower()} has been updated to <@&{newRole.Id}>" + Help)
+                .WithColor(roleColor.Color)));
+
+            return;
         }
 
-        return $"<@{Context.User.Id}> your {Context.InvokedAlias.ToLower()} is already set to <@&{userAlreadyInRole.Id}>";
+        await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
+            .WithDescription($"Your {Context.InvokedAlias.ToLower()} is already set to <@&{userAlreadyInRole.Id}>" + Help)
+            .WithColor(roleColor.Color)));
     }
 
     /// <summary>
@@ -154,7 +166,8 @@ public class ColorBot : CommandModule<PrefixedCommandContext>
 
         public string RoleName => $"#{R:X2}{G:X2}{B:X2}";
 
-        public RoleColorsProperties RoleColorsProperties => new RoleColorsProperties(new Color(R, G, B));
+        public Color Color => new Color(R, G, B);
+        public RoleColorsProperties RoleColorsProperties => new RoleColorsProperties(Color);
         public static CatBotColor FromHex(string validHexColor) => new CatBotColor
         {
             R = Convert.ToByte(validHexColor.Substring(0, 2), 16),
