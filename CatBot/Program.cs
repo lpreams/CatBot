@@ -12,7 +12,7 @@ class Program
     static async Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
-        var prefix = builder.Configuration["Discord:Prefix"] ?? "?";
+        var prefix = builder.Configuration.Prefix();
         builder.Services
             .AddDiscordGateway(options => options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent)
             .AddCommands<PrefixedCommandContext>(options =>
@@ -21,7 +21,8 @@ class Program
                     new PrefixedCommandContext(message, client, prefix);
             });
         var host = builder.Build();
-        if (builder.Configuration.GetValue<bool>("EnableColorBot"))
+        host.AddCommandModule<HelpBot>();
+        if (builder.Configuration.EnableColorBot())
             host.AddCommandModule<ColorBot>();
         await host.RunAsync();
     }
@@ -40,4 +41,10 @@ public class PrefixedCommandContext(Message message, GatewayClient client, strin
     public string InvokedAlias => Message.Content[prefix.Length..]
         .TrimStart()
         .Split(' ', 2)[0];
+}
+
+public static class Extensions
+{
+    public static string Prefix(this IConfiguration config) => config["Discord:Prefix"] ?? "?";
+    public static bool EnableColorBot(this IConfiguration config) => config.GetValue<bool>("EnableColorBot");
 }

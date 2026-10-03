@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services;
@@ -7,22 +8,26 @@ using NetCord.Services.Commands;
 
 namespace CatBot;
 
-public class ColorBot: CommandModule<PrefixedCommandContext>
+public class ColorBot(IConfiguration config) : CommandModule<PrefixedCommandContext>
 {
-    private const string Help =
-        "\nNeed help? Examples: `#ff00ff`, `123456`, `0xf0f0f0`, etc. [Color Picker](https://www.google.com/search?q=color+picker)";
-    
     [Command("color", "colour")]
     [RequireContext<PrefixedCommandContext>(RequiredContext.Guild)]
     [RequireBotPermissions<PrefixedCommandContext>(Permissions.ManageRoles)]
     public async Task Color(string hexColor)
     {
+        if (hexColor.ToLower().Equals("help"))
+        {
+            await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
+                .WithDescription(HelpBot.HelpImpl(config))));
+            return;
+        }
+        
         // make sure color is valid
         var hex = ValidateHexColor(hexColor);
         if (hex == null)
         {
             await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
-                .WithDescription($"Invalid hex {Context.InvokedAlias.ToLower()}: `{hexColor}`" + Help)));
+                .WithDescription($"Invalid hex {Context.InvokedAlias.ToLower()}: `{hexColor}`" + Help(Context.InvokedAlias.ToLower()))));
             return;
         }
 
@@ -36,7 +41,7 @@ public class ColorBot: CommandModule<PrefixedCommandContext>
 
         Role? userAlreadyInRole = null;
 
-        List<Role> removedRoles = [];
+        var removedRoles = new List<Role>();
         
         foreach (var r in existingColorRoles)
         {
@@ -66,16 +71,19 @@ public class ColorBot: CommandModule<PrefixedCommandContext>
             var newRole = await GetOrCreateRole(roleColor);
             await guildUser.AddRoleAsync(newRole.Id);
             await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
-                .WithDescription($"Your {Context.InvokedAlias.ToLower()} has been updated to <@&{newRole.Id}>" + Help)
+                .WithDescription($"Your {Context.InvokedAlias.ToLower()} has been updated to <@&{newRole.Id}>" + Help(Context.InvokedAlias.ToLower()))
                 .WithColor(roleColor.Color)));
 
             return;
         }
 
         await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
-            .WithDescription($"Your {Context.InvokedAlias.ToLower()} is already set to <@&{userAlreadyInRole.Id}>" + Help)
+            .WithDescription($"Your {Context.InvokedAlias.ToLower()} is already set to <@&{userAlreadyInRole.Id}>" + Help(Context.InvokedAlias.ToLower()))
             .WithColor(roleColor.Color)));
     }
+    
+    private string Help(string alias) =>
+        $"\nNeed help? Examples: `#ff00ff`, `123456`, `0xf0f0f0`, etc. [{alias} picker](https://www.google.com/search?q=color+picker)";
 
     /// <summary>
     /// Gets an existing role for a given color, or creates it if needed
