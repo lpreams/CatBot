@@ -1,17 +1,16 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using NetCord;
-using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services;
 using NetCord.Services.Commands;
 
 namespace CatBot;
 
-public class ColorBot : CommandModule<PrefixedCommandContext>
+public class ColorBot: CommandModule<PrefixedCommandContext>
 {
     private const string Help =
-        "\nNeed help? Examples: '#ff00ff', `123456`, `0xf0f0f0`, etc. [Color Picker](https://www.google.com/search?q=color+picker)";
+        "\nNeed help? Examples: `#ff00ff`, `123456`, `0xf0f0f0`, etc. [Color Picker](https://www.google.com/search?q=color+picker)";
     
     [Command("color", "colour")]
     [RequireContext<PrefixedCommandContext>(RequiredContext.Guild)]
@@ -196,21 +195,4 @@ public class ColorBot : CommandModule<PrefixedCommandContext>
         return await response.Content.ReadFromJsonAsync<Dictionary<ulong, int>>()
                ?? new Dictionary<ulong, int>();
     }
-}
-
-/// <summary>
-/// Allows to get the alias that was used to invoke a Command
-/// </summary>
-/// <param name="message"></param>
-/// <param name="client"></param>
-/// <param name="prefixLength"></param>
-public class PrefixedCommandContext(Message message, GatewayClient client, int prefixLength)
-    : CommandContext(message, client)
-{
-    public int PrefixLength { get; } = prefixLength;
-
-    // The alias as the user typed it, e.g. "colour" for "?colour #fff"
-    public string InvokedAlias => Message.Content[PrefixLength..]
-        .TrimStart()
-        .Split(' ', 2)[0];
 }
