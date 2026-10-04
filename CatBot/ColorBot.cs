@@ -18,7 +18,7 @@ public class ColorBot(IConfiguration config) : CommandModule<PrefixedCommandCont
         if (hexColor.ToLower().Equals("help"))
         {
             await ReplyAsync(new ReplyMessageProperties().AddEmbeds(new EmbedProperties()
-                .WithDescription(HelpBot.HelpImpl(config))));
+                .WithDescription(await HelpBot.HelpImpl(config, Context))));
             return;
         }
         
@@ -83,7 +83,7 @@ public class ColorBot(IConfiguration config) : CommandModule<PrefixedCommandCont
     }
     
     private string Help(string alias) =>
-        $"\nNeed help? Examples: `#ff00ff`, `123456`, `0xf0f0f0`, etc. [{alias} picker](https://www.google.com/search?q=color+picker)";
+        $"\nNeed help? Examples: `#ff00ff`, `123456`, `0xf0f0f0`, etc. [{alias.FirstUpper()} Picker](https://www.google.com/search?q=color+picker)";
 
     /// <summary>
     /// Gets an existing role for a given color, or creates it if needed
